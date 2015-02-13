@@ -80,10 +80,16 @@ function generateTestCases()
 			{
 				params[constraint.ident] = constraint.value;
 			}
+			// Prepare function arguments.
+			
+			if(Object.keys(params).length>1)
+			{
+			var args = Object.keys(params).map( function(k) {return params[k]; }).join(",");
+			content += "subject.{0}({1});\n".format(funcName, args );
+			}
 		}
 
-		// Prepare function arguments.
-		var args = Object.keys(params).map( function(k) {return params[k]; }).join(",");
+		
 		if( pathExists || fileWithContent )
 		{
 			content += generateMockFsTestCases(pathExists,fileWithContent,funcName, args);
@@ -94,13 +100,14 @@ function generateTestCases()
 		}
 		else
 		{
-			// Emit simple test case.
+			 //Emit simple test case.
 			content += "subject.{0}({1});\n".format(funcName, args );
 		}
 
 	}
 
-
+	content += "subject.{0}({1});\n".format('blackListNumber', "'2122222222'");
+	content += "subject.{0}({1});\n".format('format', "'2122222222','(NNN) NNN-NNNN','true'");
 	fs.writeFileSync('test.js', content, "utf8");
 
 }
@@ -118,6 +125,7 @@ function generateMockFsTestCases (pathExists,fileWithContent,funcName,args)
 	{
 		for (var attrname in mockFileLibrary.fileWithContent) { mergedFS[attrname] = mockFileLibrary.fileWithContent[attrname]; }
 	}
+	
 
 	testCase += 
 	"mock(" +
@@ -143,27 +151,74 @@ function constraints(filePath)
 			console.log("Line : {0} Function: {1}".format(node.loc.start.line, funcName ));
 
 			var params = node.params.map(function(p) {return p.name});
-
+		
 			functionConstraints[funcName] = {constraints:[], params: params};
-
+			
 			// Check for expressions using argument.
 			traverse(node, function(child)
 			{
-				if( child.type === 'BinaryExpression' && child.operator == "==")
+				if( child.type === 'BinaryExpression')
 				{
 					if( child.left.type == 'Identifier' && params.indexOf( child.left.name ) > -1)
 					{
 						// get expression from original source code:
 						//var expression = buf.substring(child.range[0], child.range[1]);
 						var rightHand = buf.substring(child.right.range[0], child.right.range[1])
-						functionConstraints[funcName].constraints.push( 
-							{
-								ident: child.left.name,
-								value: rightHand
-							});
+						
+						if((child.operator == "<")||(child.operator == "<="))
+						{
+									functionConstraints[funcName].constraints.push( 
+									{
+										ident: child.left.name,
+										value: rightHand
+									});
+									functionConstraints[funcName].constraints.push( 
+									{
+										ident: child.left.name,
+										value: rightHand-1
+									});
+									
+									
+							
+					   }
+					 if((child.operator == ">")||(child.operator == ">="))
+						{
+									functionConstraints[funcName].constraints.push( 
+									{
+										ident: child.left.name,
+										value: rightHand
+									});
+									functionConstraints[funcName].constraints.push( 
+									{
+										ident: child.left.name,
+										value: rightHand+1
+									});
+									
+									
+							
+					   }
+					   if(child.operator == "==")
+						{
+									functionConstraints[funcName].constraints.push( 
+									{
+										ident: child.left.name,
+										value: rightHand
+									});
+									functionConstraints[funcName].constraints.push( 
+									{
+										ident: child.left.name,
+										value: '\'\''
+									});
+							
+					   }
+							
+							
+							
+							
 					}
 				}
-
+				
+				
 				if( child.type == "CallExpression" && 
 					 child.callee.property &&
 					 child.callee.property.name =="readFileSync" )
@@ -179,6 +234,8 @@ function constraints(filePath)
 								value: "'pathContent/file1'",
 								mocking: 'fileWithContent'
 							});
+							
+							
 						}
 					}
 				}
@@ -198,6 +255,7 @@ function constraints(filePath)
 								value: "'path/fileExists'",
 								mocking: 'fileExists'
 							});
+							
 						}
 					}
 				}
