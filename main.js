@@ -47,14 +47,14 @@ var mockFileLibrary =
 		{	
   			file1: 'text content',
 		}
-	},
+	},//New case when no content
 	fileWithOutContent:
 	{
 		pathContent: 
 		{	
   			file1: '',
 		}
-	},
+	},//case when file does not exist
 	noFileExist:
 	{
 		pathContent:
@@ -123,19 +123,21 @@ function generateTestCases()
 		}
 		if ( phoneNumber)
 		{
-		if(Object.keys(params).length >1)
-		{
-			var phnno = "0010011010";
-			var format = "(NNN) NNN-NNNN)";
-			var opt = "";
-			content+= generatePhoneNumberCases(phnno,format,opt,funcName);
-			var opt = '{"normalize": true}';
-			content+= generatePhoneNumberCases(phnno,format,opt,funcName);
-			var Options = '';
-			content+= generatePhoneNumberCases(faker.phone.phoneNumber(),faker.phone.phoneNumberFormat(),opt,funcName);
-		}
-		else 
-			content+= "subject.{0}({1});\n".format(funcName, "'"+faker.phone.phoneNumber()+"'");
+			if(Object.keys(params).length >1)
+			{
+				var phnno = "0010011010";
+				var format = "(NNN) NNN-NNNN)";
+			
+				var opt = '{"normalize": true}';
+				content+= generatePhoneNumberCases(phnno,format,opt,funcName);
+			
+				var opt = "";
+				content+= generatePhoneNumberCases(phnno,format,opt,funcName);
+				var opt = '';
+				content+= generatePhoneNumberCases(faker.phone.phoneNumber(),faker.phone.phoneNumberFormat(),opt,funcName);
+			}
+			else 
+				content+= "subject.{0}({1});\n".format(funcName, "'"+faker.phone.phoneNumber()+"'");
 		
 		
 		
@@ -147,6 +149,7 @@ function generateTestCases()
 		}
 
 	}
+	 //Case when number starts with 212
 	 content += "subject.{0}({1});\n".format('blackListNumber', "'2120000000'");
 
 	fs.writeFileSync('test.js', content, "utf8");
@@ -154,14 +157,14 @@ function generateTestCases()
 }
 function generatePhoneNumberCases(phnno,format,opt,funcName)
 {
-var args ='';
-if(opt == '')
-args="'"+phnno+"','"+format+"','"+opt+"'";
-else
-args="'"+phnno+"','"+format+"',"+opt;
-var testCase = '';
-testCase += "subject.{0}({1});\n".format(funcName, args );
-return testCase;
+		var args ='';
+	if(opt == '')
+		args="'"+phnno+"','"+format+"','"+opt+"'";
+	else
+		args="'"+phnno+"','"+format+"',"+opt;
+	var newcases = '';
+		newcases += "subject.{0}({1});\n".format(funcName, args );
+	return newcases;
 
 
 }
