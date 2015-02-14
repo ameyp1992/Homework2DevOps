@@ -1,7 +1,7 @@
 ### Dev Ops Homework 2 - Test Suite Minimization
 
 ### Unity ID : apatwar
-
+### Name : Amey Atul Patwardhan
 ### Coverage Report
 
 ![ScreenShot](CoverageReport.png)
