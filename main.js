@@ -32,6 +32,7 @@ function fakeDemo()
 
 var functionConstraints =
 {
+
 }
 
 var mockFileLibrary = 
@@ -46,13 +47,29 @@ var mockFileLibrary =
 		{	
   			file1: 'text content',
 		}
+	},
+	fileWithOutContent:
+	{
+		pathContent: 
+		{	
+  			file1: '',
+		}
+	},
+	noFileExist:
+	{
+		pathContent:
+		{
+		fileNo: '',
+		}
+	
 	}
+	//added
 };
 
 function generateTestCases()
 {
 
-	var content = "var subject = require('./subject.js')\nvar mock = require('mock-fs');\n";
+	var content = "var subject = require('./subject.js')\nvar mock = require('mock-fs');\nvar faker = require('faker');";
 	for ( var funcName in functionConstraints )
 	{
 		var params = {};
@@ -66,13 +83,14 @@ function generateTestCases()
 		}
 
 		//console.log( params );
-
 		// update parameter values based on known constraints.
 		var constraints = functionConstraints[funcName].constraints;
 		// Handle global constraints...
 		var fileWithContent = _.some(constraints, {mocking: 'fileWithContent' });
+		var noFileExist = _.some(constraints, {mocking: 'noFileExist' });
+		var phoneNumber = _.contains(functionConstraints[funcName].params, "phoneNumber");
+		
 		var pathExists      = _.some(constraints, {mocking: 'fileExists' });
-
 		for( var c = 0; c < constraints.length; c++ )
 		{
 			var constraint = constraints[c];
@@ -90,13 +108,37 @@ function generateTestCases()
 		}
 
 		
-		if( pathExists || fileWithContent )
+		if( pathExists || fileWithContent)
 		{
-			content += generateMockFsTestCases(pathExists,fileWithContent,funcName, args);
+			content += generateMockFsTestCases(pathExists,fileWithContent,!noFileExist,funcName, args);
 			// Bonus...generate constraint variations test cases....
-			content += generateMockFsTestCases(!pathExists,!fileWithContent,funcName, args);
-			content += generateMockFsTestCases(pathExists,!fileWithContent,funcName, args);
-			content += generateMockFsTestCases(!pathExists,fileWithContent,funcName, args);
+			content += generateMockFsTestCases(pathExists,!fileWithContent,noFileExist,funcName, args);
+			content += generateMockFsTestCases(!pathExists,fileWithContent,noFileExist,funcName, args);
+			content += generateMockFsTestCases(pathExists,fileWithContent,noFileExist,funcName, args);
+			content += generateMockFsTestCases(!pathExists,!fileWithContent,!noFileExist,funcName, args);
+			content += generateMockFsTestCases(pathExists,!fileWithContent,!noFileExist,funcName, args);
+			content += generateMockFsTestCases(!pathExists,fileWithContent,!noFileExist,funcName, args);
+			
+			
+		}
+		if ( phoneNumber)
+		{
+		if(Object.keys(params).length >1)
+		{
+			var phnno = "0010011010";
+			var format = "(NNN) NNN-NNNN)";
+			var opt = "";
+			content+= generatePhoneNumberCases(phnno,format,opt,funcName);
+			var opt = '{"normalize": true}';
+			content+= generatePhoneNumberCases(phnno,format,opt,funcName);
+			var Options = '';
+			content+= generatePhoneNumberCases(faker.phone.phoneNumber(),faker.phone.phoneNumberFormat(),opt,funcName);
+		}
+		else 
+			content+= "subject.{0}({1});\n".format(funcName, "'"+faker.phone.phoneNumber()+"'");
+		
+		
+		
 		}
 		else
 		{
@@ -105,28 +147,53 @@ function generateTestCases()
 		}
 
 	}
+	 content += "subject.{0}({1});\n".format('blackListNumber', "'2120000000'");
 
-	content += "subject.{0}({1});\n".format('blackListNumber', "'2122222222'");
-	content += "subject.{0}({1});\n".format('format', "'2122222222','(NNN) NNN-NNNN','true'");
 	fs.writeFileSync('test.js', content, "utf8");
 
 }
+function generatePhoneNumberCases(phnno,format,opt,funcName)
+{
+var args ='';
+if(opt == '')
+args="'"+phnno+"','"+format+"','"+opt+"'";
+else
+args="'"+phnno+"','"+format+"',"+opt;
+var testCase = '';
+testCase += "subject.{0}({1});\n".format(funcName, args );
+return testCase;
 
-function generateMockFsTestCases (pathExists,fileWithContent,funcName,args) 
+
+}
+
+function generateMockFsTestCases (pathExists,fileWithContent,noFileExist,funcName,args) //added
 {
 	var testCase = "";
 	// Insert mock data based on constraints.
 	var mergedFS = {};
-	if( pathExists )
+	
+	if( pathExists   )
 	{
 		for (var attrname in mockFileLibrary.pathExists) { mergedFS[attrname] = mockFileLibrary.pathExists[attrname]; }
 	}
-	if( fileWithContent )
+	 if(fileWithContent && !noFileExist)
 	{
+		
 		for (var attrname in mockFileLibrary.fileWithContent) { mergedFS[attrname] = mockFileLibrary.fileWithContent[attrname]; }
 	}
+	//added
+	else if( !fileWithContent && !noFileExist )
+	{
+		
+		for (var attrname in mockFileLibrary.fileWithOutContent) { mergedFS[attrname] = mockFileLibrary.fileWithOutContent[attrname]; }
+	}
+	else if(!fileWithContent && noFileExist )
+	{
+		
+		for (var attrname in mockFileLibrary.noFileExist) { mergedFS[attrname] = mockFileLibrary.noFileExist[attrname]; }
+	}
 	
-
+	//added
 	testCase += 
 	"mock(" +
 		JSON.stringify(mergedFS)
